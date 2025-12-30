@@ -6,28 +6,41 @@ import akka.javasdk.annotations.TypeName;
 import akka.javasdk.eventsourcedentity.EventSourcedEntity;
 import io.example.domain.Participant.ParticipantType;
 
+
 @ComponentId("participant-slot")
 public class ParticipantSlotEntity
         extends EventSourcedEntity<ParticipantSlotEntity.State, ParticipantSlotEntity.Event> {
 
     public Effect<Done> unmarkAvailable(ParticipantSlotEntity.Commands.UnmarkAvailable unmark) {
-        // Supply your own implementation
-        return effects().reply(Done.done());
+        var event = new Event.UnmarkedAvailable(
+                unmark.slotId(), unmark.participantId(), unmark.participantType()
+        );
+        return effects()
+                .persist(event)
+                .thenReply(newState -> Done.done());
     }
 
     public Effect<Done> markAvailable(ParticipantSlotEntity.Commands.MarkAvailable mark) {
-        // Supply your own implementation
-        return effects().reply(Done.done());
+        var event = new Event.MarkedAvailable(mark.slotId(),  mark.participantId(), mark.participantType());
+        return effects()
+                .persist(event)
+                .thenReply(newState -> Done.done());
     }
 
     public Effect<Done> book(ParticipantSlotEntity.Commands.Book book) {
-        // Supply your own implementation
-        return effects().reply(Done.done());
+        var event = new Event.Booked(book.slotId(), book.participantId(), book.participantType(), book.bookingId());
+
+        return effects()
+                .persist(event)
+                .thenReply(newState -> Done.done());
     }
 
     public Effect<Done> cancel(ParticipantSlotEntity.Commands.Cancel cancel) {
-        // Supply your own implementation
-        return effects().reply(Done.done());
+        var event= new Event.Canceled(cancel.slotId(), cancel.participantId(), cancel.participantType(),cancel.bookingId());
+
+        return effects()
+                .persist(event)
+                .thenReply(newState -> Done.done());
     }
 
     record State(
@@ -80,7 +93,21 @@ public class ParticipantSlotEntity
 
     @Override
     public ParticipantSlotEntity.State applyEvent(ParticipantSlotEntity.Event event) {
-        // Supply your own implementation
-        return null;
-    }
-}
+        return switch(event){
+            case Event.MarkedAvailable evt ->
+            // The new state is a 'State' record with status "available"
+            new State(evt.slotId(), evt.participantId(), evt.participantType(), "available");
+
+            case Event.Booked evt ->
+                // The new state is a 'State' record with status "booked"
+                    new State(evt.slotId(), evt.participantId(), evt.participantType(), "booked");
+
+            case Event.UnmarkedAvailable evt ->
+                // If availability is unmarked
+                    new State(evt.slotId(), evt.participantId(), evt.participantType(), "not available");
+
+            case Event.Canceled evt ->
+                // If the booking is canceled
+                    new State(evt.slotId(), evt.participantId(), evt.participantType(), "canceled");
+    };
+}};

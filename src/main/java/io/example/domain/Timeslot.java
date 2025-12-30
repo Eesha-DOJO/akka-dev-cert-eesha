@@ -57,5 +57,6 @@ public record Timeslot(Set<Booking> bookings, Set<Participant> available) {
     return new Timeslot(books, available);
   }
 
-  public record Booking(Participant participant, String bookingId) {}
+
+    public record Booking(Participant participant, String bookingId) {}
 }

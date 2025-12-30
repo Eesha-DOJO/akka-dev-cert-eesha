@@ -23,8 +23,41 @@ public class SlotToParticipantConsumer extends Consumer {
     }
 
     public Effect onEvent(BookingEvent event) {
-        // Supply your own implementation
-        return effects().done();
+        var participantSlot = participantSlotId(event);
+    //When an event arrives in onEvent(), it transforms that event into a corresponding command:
+        //ParticipantMarkedAvailable event → MarkAvailable command
+        return switch (event) {
+            case BookingEvent.ParticipantMarkedAvailable evt -> effects().asyncDone(
+                            client.forEventSourcedEntity(participantSlot)
+                                    .method(ParticipantSlotEntity::markAvailable)
+                                    .invokeAsync(new ParticipantSlotEntity.Commands.MarkAvailable(
+                                            evt.slotId(), evt.participantId(), evt.participantType()
+                                    ))
+                        );
+
+            case BookingEvent.ParticipantUnmarkedAvailable evt -> effects().asyncDone(
+                            client.forEventSourcedEntity(participantSlot)
+                                    .method(ParticipantSlotEntity::unmarkAvailable)
+                                    .invokeAsync(new ParticipantSlotEntity.Commands.UnmarkAvailable(
+                                            evt.slotId(), evt.participantId(), evt.participantType()
+                                    )));
+
+            case BookingEvent.ParticipantBooked evt -> effects().asyncDone(
+                            client.forEventSourcedEntity(participantSlot)
+                                    .method(ParticipantSlotEntity::book)
+                                    .invokeAsync(new ParticipantSlotEntity.Commands.Book(
+                                            evt.slotId(), evt.participantId(), evt.participantType(), evt.bookingId()
+                                    )));
+
+            case BookingEvent.ParticipantCanceled evt ->effects().asyncDone(
+
+                            client.forEventSourcedEntity(participantSlot)
+                                    .method(ParticipantSlotEntity::cancel)
+                                    .invokeAsync(new ParticipantSlotEntity.Commands.Cancel(
+                                            evt.slotId(), evt.participantId(), evt.participantType(), evt.bookingId()
+                                    )));
+
+        };
     }
 
     // Participant slots are keyed by a derived key made up of
